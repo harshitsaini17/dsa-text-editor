@@ -259,4 +259,108 @@ export class Rope {
   private getHeight(node: RopeNode | undefined): number {
     return node ? node.height : 0;
   }
+
+  /**
+   * Updates the height of a node based on its children
+   */
+  private updateHeight(node: RopeNode): void {
+    node.height = Math.max(this.getHeight(node.left), this.getHeight(node.right)) + 1;
+  }
+
+  /**
+   * Gets the balance factor of a node
+   * @returns Positive if left-heavy, negative if right-heavy
+   */
+  private getBalance(node: RopeNode): number {
+    return this.getHeight(node.left) - this.getHeight(node.right);
+  }
+
+  /**
+   * Performs a right rotation on the given node
+   * @param y - Node to rotate
+   * @returns New root after rotation
+   */
+  private rotateRight(y: RopeNode): RopeNode {
+    const x = y.left!;
+    const T2 = x.right;
+
+    // Perform rotation
+    x.right = y;
+    y.left = T2;
+
+    // Update weights
+    y.weight = this.getWeight(y.left);
+
+    // Update heights
+    this.updateHeight(y);
+    this.updateHeight(x);
+
+    return x;
+  }
+
+  /**
+   * Performs a left rotation on the given node
+   * @param x - Node to rotate
+   * @returns New root after rotation
+   */
+  private rotateLeft(x: RopeNode): RopeNode {
+    const y = x.right!;
+    const T2 = y.left;
+
+    // Perform rotation
+    y.left = x;
+    x.right = T2;
+
+    // Update weights
+    x.weight = this.getWeight(x.left);
+    y.weight = x.weight + (x.right ? x.right.length() : 0);
+
+    // Update heights
+    this.updateHeight(x);
+    this.updateHeight(y);
+
+    return y;
+  }
+
+  /**
+   * Gets the weight (left subtree size) of a node
+   */
+  private getWeight(node: RopeNode | undefined): number {
+    return node ? node.length() : 0;
+  }
+
+  /**
+   * Rebalances a node using AVL rotations
+   * @param node - Node to rebalance
+   * @returns Balanced node
+   */
+  private rebalance(node: RopeNode): RopeNode {
+    // Update height
+    this.updateHeight(node);
+
+    // Get balance factor
+    const balance = this.getBalance(node);
+
+    // Left heavy
+    if (balance > 1) {
+      // Left-Right case
+      if (node.left && this.getBalance(node.left) < 0) {
+        node.left = this.rotateLeft(node.left);
+      }
+      // Left-Left case
+      return this.rotateRight(node);
+    }
+
+    // Right heavy
+    if (balance < -1) {
+      // Right-Left case
+      if (node.right && this.getBalance(node.right) > 0) {
+        node.right = this.rotateRight(node.right);
+      }
+      // Right-Right case
+      return this.rotateLeft(node);
+    }
+
+    return node;
+  }
 }
