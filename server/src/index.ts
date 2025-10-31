@@ -1,37 +1,25 @@
-import { WebSocketServer, WebSocket } from 'ws';
+import { CollabServer } from './server';
 
-const PORT = 8080;
-
-/**
- * Initialize WebSocket server
- */
-const wss = new WebSocketServer({ port: PORT });
-
-console.log(`WebSocket server started on port ${PORT}`);
+const PORT = process.env.PORT ? parseInt(process.env.PORT) : 8080;
 
 /**
- * Handle new client connections
+ * Start the collaborative text editor server
  */
-wss.on('connection', (ws: WebSocket) => {
-  console.log('New client connected');
+const server = new CollabServer(PORT);
 
-  ws.on('message', (data: Buffer) => {
-    console.log('Received:', data.toString());
-    // Message handling will be implemented later
-  });
+// Log server stats every 60 seconds
+setInterval(() => {
+  const stats = server.getStats();
+  console.log(`Server stats - Documents: ${stats.docs}, Clients: ${stats.clients}`);
+}, 60000);
 
-  ws.on('close', () => {
-    console.log('Client disconnected');
-  });
-
-  ws.on('error', (error: Error) => {
-    console.error('WebSocket error:', error);
-  });
+// Graceful shutdown
+process.on('SIGINT', () => {
+  console.log('Shutting down server...');
+  process.exit(0);
 });
 
-/**
- * Handle server errors
- */
-wss.on('error', (error: Error) => {
-  console.error('Server error:', error);
+process.on('SIGTERM', () => {
+  console.log('Shutting down server...');
+  process.exit(0);
 });
