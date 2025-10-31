@@ -285,7 +285,7 @@ export class IntervalTree {
    * Deletes a node from the tree
    * Note: Full RB-tree deletion is complex, this is a simplified version
    */
-  private deleteNode(node: IntervalNode): void {
+  private deleteNode(_node: IntervalNode): void {
     // Simplified deletion - full implementation would require RB-tree fix-up
     // For MVP, we'll mark as deleted or implement simple BST deletion
     // TODO: Implement full RB-tree deletion with fix-up

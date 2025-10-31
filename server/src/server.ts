@@ -1,6 +1,6 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import { Rope } from './rope';
-import { Operation, Message, OpMessage, JoinMessage, ClientInfo } from '../shared/types';
+import { Operation, Message, OpMessage, JoinMessage, ClientInfo } from './types';
 
 /**
  * Document state for a collaborative session
@@ -171,7 +171,7 @@ export class CollabServer {
   /**
    * Handles cursor updates
    */
-  private handleCursor(ws: WebSocket, message: Message): void {
+  private handleCursor(_ws: WebSocket, message: Message): void {
     const { docId, clientId } = message;
     
     // Broadcast cursor position to other clients

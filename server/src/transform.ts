@@ -1,4 +1,4 @@
-import { Operation, InsertOperation, DeleteOperation } from '../shared/types';
+import { Operation, InsertOperation, DeleteOperation } from './types';
 
 /**
  * Operational Transform (OT) implementation

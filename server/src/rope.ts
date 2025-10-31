@@ -263,7 +263,7 @@ export class Rope {
   /**
    * Updates the height of a node based on its children
    */
-  private updateHeight(node: RopeNode): void {
+  /* private updateHeight(node: RopeNode): void {
     node.height = Math.max(this.getHeight(node.left), this.getHeight(node.right)) + 1;
   }
 
@@ -271,7 +271,7 @@ export class Rope {
    * Gets the balance factor of a node
    * @returns Positive if left-heavy, negative if right-heavy
    */
-  private getBalance(node: RopeNode): number {
+  /* private getBalance(node: RopeNode): number {
     return this.getHeight(node.left) - this.getHeight(node.right);
   }
 
@@ -280,7 +280,7 @@ export class Rope {
    * @param y - Node to rotate
    * @returns New root after rotation
    */
-  private rotateRight(y: RopeNode): RopeNode {
+  /* private rotateRight(y: RopeNode): RopeNode {
     const x = y.left!;
     const T2 = x.right;
 
@@ -303,7 +303,7 @@ export class Rope {
    * @param x - Node to rotate
    * @returns New root after rotation
    */
-  private rotateLeft(x: RopeNode): RopeNode {
+  /* private rotateLeft(x: RopeNode): RopeNode {
     const y = x.right!;
     const T2 = y.left;
 
@@ -325,7 +325,7 @@ export class Rope {
   /**
    * Gets the weight (left subtree size) of a node
    */
-  private getWeight(node: RopeNode | undefined): number {
+  /* private getWeight(node: RopeNode | undefined): number {
     return node ? node.length() : 0;
   }
 
@@ -333,8 +333,9 @@ export class Rope {
    * Rebalances a node using AVL rotations
    * @param node - Node to rebalance
    * @returns Balanced node
+   * Note: This will be integrated into insert/delete operations in future commits
    */
-  private rebalance(node: RopeNode): RopeNode {
+  /* private _rebalance(node: RopeNode): RopeNode {
     // Update height
     this.updateHeight(node);
 
@@ -363,4 +364,5 @@ export class Rope {
 
     return node;
   }
+  */
 }

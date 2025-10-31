@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 
 /**
  * Main application component for the collaborative text editor
  */
 function App() {
-  const [connected, setConnected] = useState(false);
+  const [connected] = useState(false);
 
   return (
     <div className="app">

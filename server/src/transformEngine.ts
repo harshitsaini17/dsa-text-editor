@@ -1,5 +1,5 @@
 import { FenwickTree } from './fenwick';
-import { Operation } from '../shared/types';
+import { Operation } from './types';
 
 /**
  * Transform Engine - Uses Fenwick Tree for efficient position transformation
@@ -8,10 +8,10 @@ export class TransformEngine {
   /**
    * Builds a shift index (Fenwick Tree) from operations since a given sequence number
    * @param ops - Array of operations
-   * @param sinceSeq - Sequence number to start from
+   * @param _sinceSeq - Sequence number to start from (reserved for future use)
    * @returns Fenwick Tree representing cumulative shifts
    */
-  buildShiftIndex(ops: Operation[], sinceSeq: number): FenwickTree {
+  buildShiftIndex(ops: Operation[], _sinceSeq: number): FenwickTree {
     // Find max position to determine tree size
     let maxPos = 10000; // Default size
     for (const op of ops) {

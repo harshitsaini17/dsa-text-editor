@@ -1,5 +1,5 @@
 import { transform, transformAgainstOps } from '../src/transform';
-import { Operation, InsertOperation, DeleteOperation } from '../../shared/types';
+import { Operation, InsertOperation, DeleteOperation } from '../src/types';
 
 /**
  * Test suite for Operational Transform algorithm
