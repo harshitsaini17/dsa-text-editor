@@ -3,6 +3,8 @@ import { Editor } from './Editor';
 import { CollabClient } from './connection';
 import { Outbox } from './outbox';
 import { rebaseOperation } from './rebase';
+import { CursorManager } from './cursorManager';
+import { Presence } from './Presence';
 import { Operation } from './types';
 
 /**
@@ -12,8 +14,10 @@ function App() {
   const [connected, setConnected] = useState(false);
   const [clientId, setClientId] = useState<string>('');
   const [doc, setDoc] = useState<string>('');
+  const [cursors, setCursors] = useState<ReturnType<CursorManager['getAllCursors']>>([]);
   const clientRef = useRef<CollabClient | null>(null);
   const outboxRef = useRef<Outbox>(new Outbox());
+  const cursorManagerRef = useRef<CursorManager>(new CursorManager());
   const serverSeqRef = useRef<number>(0);
   const ignoreNextChange = useRef<boolean>(false);
 
@@ -34,15 +38,24 @@ function App() {
 
         // Apply operation to local doc
         applyOperation(op);
+
+        // Shift cursors if needed
+        if (op.type === 'insert' && op.text) {
+          cursorManagerRef.current.shiftCursors(op.pos, op.text.length);
+        } else if (op.type === 'delete' && op.len) {
+          cursorManagerRef.current.shiftCursors(op.pos, -op.len);
+        }
       },
       onAck: (seq) => {
         outboxRef.current.removeUntil(seq);
       },
-      onCursor: (_clientId, _from, _to) => {
-        // TODO: Handle remote cursor updates
+      onCursor: (cId, from, to) => {
+        cursorManagerRef.current.updateCursor(cId, from, to);
+        setCursors(cursorManagerRef.current.getAllCursors());
       },
-      onDisconnect: (_clientId) => {
-        // TODO: Handle client disconnect
+      onDisconnect: (cId) => {
+        cursorManagerRef.current.removeCursor(cId);
+        setCursors(cursorManagerRef.current.getAllCursors());
       },
     });
 
@@ -81,6 +94,13 @@ function App() {
 
     outboxRef.current.add(op);
     clientRef.current?.sendOperation(op);
+
+    // Update local cursors
+    if (!isDelete && text) {
+      cursorManagerRef.current.shiftCursors(pos, text.length);
+    } else if (isDelete && length) {
+      cursorManagerRef.current.shiftCursors(pos, -length);
+    }
   };
 
   const handleCursorChange = (from: number, to: number) => {
@@ -99,11 +119,14 @@ function App() {
       </header>
       <main className="app-main">
         {connected ? (
-          <Editor
-            initialDoc={doc}
-            onChange={handleChange}
-            onCursorChange={handleCursorChange}
-          />
+          <>
+            <Editor
+              initialDoc={doc}
+              onChange={handleChange}
+              onCursorChange={handleCursorChange}
+            />
+            <Presence cursors={cursors} currentClientId={clientId} />
+          </>
         ) : (
           <div className="loading">Connecting to server...</div>
         )}
