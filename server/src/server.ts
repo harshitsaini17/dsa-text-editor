@@ -98,6 +98,19 @@ export class CollabServer {
 
     const doc = this.docs.get(docId)!;
 
+    // Remove any existing entry for this clientId (in case of reconnection)
+    if (doc.clients.has(clientId)) {
+      console.log(`Client ${clientId} already exists, replacing and notifying others...`);
+      
+      // Notify other clients that this client disconnected (old connection)
+      this.broadcast(docId, {
+        type: 'disconnect',
+        clientId,
+      });
+      
+      doc.clients.delete(clientId);
+    }
+
     // Add client to document
     const color = this.generateColor(clientId);
     doc.clients.set(clientId, {
@@ -109,6 +122,8 @@ export class CollabServer {
         cursorPos: 0,
       },
     });
+
+    console.log(`Client ${clientName} (${clientId}) joined. Total clients: ${doc.clients.size}`);
 
     // Send current state to the joining client
     ws.send(JSON.stringify({

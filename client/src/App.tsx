@@ -16,6 +16,10 @@ function App() {
   const clientIdRef = useRef<string>('');
   const [doc, setDoc] = useState<string>('');
   const [cursors, setCursors] = useState<ReturnType<CursorManager['getAllCursors']>>([]);
+  const [clients, setClients] = useState<Array<{id: string, name: string, color: string}>>([]);
+  const [clientName, setClientName] = useState<string>('');
+  const [showNameDialog, setShowNameDialog] = useState(false);
+  const [nameInput, setNameInput] = useState<string>('');
   const clientRef = useRef<CollabClient | null>(null);
   const outboxRef = useRef<Outbox>(new Outbox());
   const cursorManagerRef = useRef<CursorManager>(new CursorManager());
@@ -24,26 +28,71 @@ function App() {
   const pendingOpsQueue = useRef<Operation[]>([]);
   const isWaitingForAck = useRef(false);
 
+  // Check for saved name in localStorage on mount
   useEffect(() => {
-    const client = new CollabClient('ws://localhost:8080', {
-      onJoined: (id, seq, initialDoc, clients) => {
+    const savedName = localStorage.getItem('clientName');
+    if (savedName) {
+      setClientName(savedName);
+      setNameInput(savedName);
+    } else {
+      setShowNameDialog(true);
+    }
+  }, []);
+
+  const handleNameSubmit = () => {
+    const trimmedName = nameInput.trim();
+    if (trimmedName) {
+      setClientName(trimmedName);
+      localStorage.setItem('clientName', trimmedName);
+      
+      // Generate a stable clientId based on name or retrieve existing one
+      let clientIdToUse = localStorage.getItem('stableClientId');
+      if (!clientIdToUse) {
+        clientIdToUse = `client_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        localStorage.setItem('stableClientId', clientIdToUse);
+      }
+      
+      setShowNameDialog(false);
+    }
+  };
+
+  useEffect(() => {
+    // Only connect after we have a client name
+    if (!clientName) return;
+    const client = new CollabClient('ws://localhost:8080', clientName, {
+      onJoined: (id, seq, initialDoc, clientsInfo) => {
         clientIdRef.current = id;
         setClientId(id);
         setDoc(initialDoc);
         serverSeqRef.current = seq;
         setConnected(true);
         
+        console.log(`Joined as ${id}, received ${clientsInfo.length} clients:`, clientsInfo.map(c => c.name));
+        
+        // Store all connected clients
+        setClients(clientsInfo.map(c => ({ id: c.id, name: c.name, color: c.color })));
+        
         // Initialize cursors for existing clients
-        clients.forEach(c => {
+        clientsInfo.forEach(c => {
           if (c.id !== id) {
-            cursorManagerRef.current.updateCursor(c.id, c.cursorPos, c.cursorPos);
+            cursorManagerRef.current.updateCursor(c.id, c.cursorPos, c.cursorPos, c.name);
           }
         });
         setCursors(cursorManagerRef.current.getAllCursors());
       },
-      onJoin: (cId, _name, _color) => {
-        // New client joined, they'll send their cursor position
-        console.log('Client joined:', cId);
+      onJoin: (cId, name, color) => {
+        // New client joined
+        console.log('Client joined:', cId, name);
+        setClients(prev => {
+          // Check if client already exists
+          if (prev.some(c => c.id === cId)) {
+            return prev;
+          }
+          return [...prev, { id: cId, name, color }];
+        });
+        // Initialize their cursor at position 0
+        cursorManagerRef.current.updateCursor(cId, 0, 0, name);
+        setCursors(cursorManagerRef.current.getAllCursors());
       },
       onOperation: (op) => {
         console.log(`Received operation from server: ${op.type} at ${op.pos}, clientId: ${op.clientId}, myId: ${clientIdRef.current}, text: "${op.text || ''}", len: ${op.len || 0}`);
@@ -98,6 +147,7 @@ function App() {
         setCursors(cursorManagerRef.current.getAllCursors());
       },
       onDisconnect: (cId) => {
+        setClients(prev => prev.filter(c => c.id !== cId));
         cursorManagerRef.current.removeCursor(cId);
         setCursors(cursorManagerRef.current.getAllCursors());
       },
@@ -109,7 +159,7 @@ function App() {
     return () => {
       client.disconnect();
     };
-  }, []);
+  }, [clientName]);
 
   const handleChange = (pos: number, text: string, isDelete: boolean, length?: number) => {
     const op: Operation = {
@@ -152,14 +202,51 @@ function App() {
 
   return (
     <div className="app">
+      {showNameDialog && (
+        <div className="name-dialog-overlay">
+          <div className="name-dialog">
+            <h2>Welcome to Collaborative Editor</h2>
+            <p>Please enter your name to continue:</p>
+            <input
+              type="text"
+              value={nameInput}
+              onChange={(e) => setNameInput(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && handleNameSubmit()}
+              placeholder="Enter your name"
+              autoFocus
+            />
+            <button onClick={handleNameSubmit} disabled={!nameInput.trim()}>
+              Join Editor
+            </button>
+          </div>
+        </div>
+      )}
       <header className="app-header">
         <h1>Collaborative Text Editor</h1>
         <div className="connection-status">
           {connected ? '🟢 Connected' : '🔴 Disconnected'}
+          {clientName && (
+            <>
+              <span className="client-name"> • {clientName}</span>
+              <button 
+                className="change-name-btn" 
+                onClick={() => {
+                  localStorage.removeItem('clientName');
+                  localStorage.removeItem('stableClientId');
+                  window.location.reload();
+                }}
+                title="Change name"
+              >
+                ✏️
+              </button>
+            </>
+          )}
         </div>
       </header>
       <main className="app-main">
-        {connected ? (
+        {!clientName ? (
+          <div className="loading">Please enter your name to start...</div>
+        ) : connected ? (
           <>
             <Editor
               initialDoc={doc}
@@ -169,7 +256,7 @@ function App() {
                 applyOperationRef.current = callback;
               }}
             />
-            <Presence cursors={cursors} currentClientId={clientId} />
+            <Presence cursors={cursors} currentClientId={clientId} clients={clients} />
           </>
         ) : (
           <div className="loading">Connecting to server...</div>

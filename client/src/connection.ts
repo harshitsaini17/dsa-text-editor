@@ -21,9 +21,11 @@ export class CollabClient {
   private handlers: MessageHandler;
   private reconnectTimer: number | null = null;
   private clientId: string = '';
+  private clientName: string;
 
-  constructor(private url: string, handlers: MessageHandler) {
+  constructor(private url: string, clientName: string, handlers: MessageHandler) {
     this.handlers = handlers;
+    this.clientName = clientName;
   }
 
   connect(): void {
@@ -31,7 +33,13 @@ export class CollabClient {
 
     this.ws.onopen = () => {
       console.log('Connected to server');
-      this.send({ type: 'join' });
+      // Send stable clientId from localStorage if available
+      const stableClientId = localStorage.getItem('stableClientId');
+      this.send({ 
+        type: 'join', 
+        clientName: this.clientName,
+        clientId: stableClientId || undefined
+      });
     };
 
     this.ws.onmessage = (event) => {
