@@ -82,7 +82,9 @@ export class CollabServer {
    * Handles client join requests
    */
   private handleJoin(ws: WebSocket, message: JoinMessage): void {
-    const { docId, clientId, clientName } = message;
+    const docId = message.docId || 'default';
+    const clientId = message.clientId || this.generateClientId();
+    const clientName = message.clientName || `User ${clientId.slice(0, 6)}`;
 
     // Initialize document if it doesn't exist
     if (!this.docs.has(docId)) {
@@ -110,11 +112,10 @@ export class CollabServer {
 
     // Send current state to the joining client
     ws.send(JSON.stringify({
-      type: 'init',
-      docId,
-      text: doc.rope.toString(),
-      serverSeq: doc.serverSeq,
-      clients: Array.from(doc.clients.values()).map(c => c.info),
+      type: 'joined',
+      clientId,
+      seq: doc.serverSeq,
+      doc: doc.rope.toString(),
     }));
 
     // Broadcast to other clients that a new client joined
@@ -125,7 +126,7 @@ export class CollabServer {
       color,
     }, clientId);
 
-    console.log(`Client ${clientName} joined document ${docId}`);
+    console.log(`Client ${clientName} (${clientId}) joined document ${docId}`);
   }
 
   /**
@@ -239,6 +240,13 @@ export class CollabServer {
     }
     
     return colors[Math.abs(hash) % colors.length];
+  }
+
+  /**
+   * Generates a unique client ID
+   */
+  private generateClientId(): string {
+    return `client_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }
 
   /**
