@@ -116,6 +116,7 @@ export class CollabServer {
       clientId,
       seq: doc.serverSeq,
       doc: doc.rope.toString(),
+      clients: Array.from(doc.clients.values()).map(c => c.info),
     }));
 
     // Broadcast to other clients that a new client joined

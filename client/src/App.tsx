@@ -23,11 +23,23 @@ function App() {
 
   useEffect(() => {
     const client = new CollabClient('ws://localhost:8080', {
-      onJoined: (id, seq, initialDoc) => {
+      onJoined: (id, seq, initialDoc, clients) => {
         setClientId(id);
         setDoc(initialDoc);
         serverSeqRef.current = seq;
         setConnected(true);
+        
+        // Initialize cursors for existing clients
+        clients.forEach(c => {
+          if (c.id !== id) {
+            cursorManagerRef.current.updateCursor(c.id, c.cursorPos, c.cursorPos);
+          }
+        });
+        setCursors(cursorManagerRef.current.getAllCursors());
+      },
+      onJoin: (cId, _name, _color) => {
+        // New client joined, they'll send their cursor position
+        console.log('Client joined:', cId);
       },
       onOperation: (op) => {
         // Rebase pending operations

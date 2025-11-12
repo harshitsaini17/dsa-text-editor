@@ -1,7 +1,15 @@
 import { Operation } from './types';
 
+type ClientInfo = {
+  id: string;
+  name: string;
+  color: string;
+  cursorPos: number;
+};
+
 type MessageHandler = {
-  onJoined: (clientId: string, seq: number, doc: string) => void;
+  onJoined: (clientId: string, seq: number, doc: string, clients: ClientInfo[]) => void;
+  onJoin: (clientId: string, clientName: string, color: string) => void;
   onOperation: (op: Operation) => void;
   onAck: (seq: number) => void;
   onCursor: (clientId: string, from: number, to: number) => void;
@@ -12,6 +20,7 @@ export class CollabClient {
   private ws: WebSocket | null = null;
   private handlers: MessageHandler;
   private reconnectTimer: number | null = null;
+  private clientId: string = '';
 
   constructor(private url: string, handlers: MessageHandler) {
     this.handlers = handlers;
@@ -50,11 +59,11 @@ export class CollabClient {
   }
 
   sendOperation(op: Operation): void {
-    this.send({ type: 'op', op });
+    this.send({ type: 'op', docId: 'default', operation: op });
   }
 
   sendCursor(from: number, to: number): void {
-    this.send({ type: 'cursor', from, to });
+    this.send({ type: 'cursor', docId: 'default', clientId: this.clientId, from, to });
   }
 
   private send(msg: unknown): void {
@@ -66,14 +75,23 @@ export class CollabClient {
   private handleMessage(msg: { type: string; [key: string]: unknown }): void {
     switch (msg.type) {
       case 'joined':
+        this.clientId = msg.clientId as string;
         this.handlers.onJoined(
           msg.clientId as string,
           msg.seq as number,
-          msg.doc as string
+          msg.doc as string,
+          (msg.clients as ClientInfo[]) || []
+        );
+        break;
+      case 'join':
+        this.handlers.onJoin(
+          msg.clientId as string,
+          msg.clientName as string,
+          msg.color as string
         );
         break;
       case 'op':
-        this.handlers.onOperation(msg.op as Operation);
+        this.handlers.onOperation(msg.operation as Operation);
         break;
       case 'ack':
         this.handlers.onAck(msg.seq as number);
