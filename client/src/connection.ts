@@ -59,6 +59,7 @@ export class CollabClient {
   }
 
   sendOperation(op: Operation): void {
+    console.log('Sending WS operation', op);
     this.send({ type: 'op', docId: 'default', operation: op });
   }
 
@@ -94,7 +95,7 @@ export class CollabClient {
         this.handlers.onOperation(msg.operation as Operation);
         break;
       case 'ack':
-        this.handlers.onAck(msg.seq as number);
+        this.handlers.onAck(msg.clientSeq as number);
         break;
       case 'cursor':
         this.handlers.onCursor(

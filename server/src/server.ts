@@ -142,6 +142,8 @@ export class CollabServer {
       return;
     }
 
+    console.log(`Received operation: ${operation.type} at ${operation.pos}, doc length: ${doc.rope.length()}, text: "${operation.text || ''}"`);
+
     try {
       // Apply operation to Rope
       if (operation.type === 'insert' && operation.text) {
@@ -156,14 +158,21 @@ export class CollabServer {
       // Store operation
       doc.ops.push(operation);
 
-      // Broadcast operation to all clients
+      // Send acknowledgment to the sender
+      ws.send(JSON.stringify({
+        type: 'ack',
+        clientSeq: operation.clientSeq,
+        serverSeq: doc.serverSeq,
+      }));
+
+      // Broadcast operation to all clients (including sender for consistency)
       this.broadcast(docId, {
         type: 'op',
         operation,
         serverSeq: doc.serverSeq,
       });
 
-      console.log(`Operation applied: ${operation.type} at ${operation.pos}`);
+      console.log(`Operation applied: ${operation.type} at ${operation.pos}, new doc length: ${doc.rope.length()}`);
     } catch (error) {
       console.error('Error applying operation:', error);
       ws.send(JSON.stringify({ type: 'error', message: 'Failed to apply operation' }));
