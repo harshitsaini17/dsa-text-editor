@@ -142,7 +142,7 @@ export class CollabServer {
       return;
     }
 
-    console.log(`Received operation: ${operation.type} at ${operation.pos}, doc length: ${doc.rope.length()}, text: "${operation.text || ''}"`);
+  console.log(`Received operation from ${operation.clientId}: ${operation.type} at ${operation.pos}, doc length: ${doc.rope.length()}, text: "${operation.text || ''}"`);
 
     try {
       // Apply operation to Rope

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 interface EditorProps {
   initialDoc: string;
@@ -11,30 +11,37 @@ export function Editor({ initialDoc, onChange, onCursorChange, onApplyOperation 
   const [value, setValue] = useState(initialDoc);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const lastValueRef = useRef(initialDoc);
-  const ignoreNextChange = useRef(0);
+  const programmaticChangeDepth = useRef(0);
+
+  const markProgrammaticChange = useCallback(() => {
+    // programmaticChangeDepth.current += 1;
+    // Promise.resolve().then(() => {
+    //   programmaticChangeDepth.current = Math.max(0, programmaticChangeDepth.current - 1);
+    // });
+  }, []);
 
   // Keep editor in sync when the initial document changes (e.g., on reconnect)
   useEffect(() => {
     if (lastValueRef.current !== initialDoc) {
-      ignoreNextChange.current += 1;
+      // markProgrammaticChange();
       lastValueRef.current = initialDoc;
       setValue(initialDoc);
     }
-  }, [initialDoc]);
+  }, [initialDoc, markProgrammaticChange]);
 
   useEffect(() => {
     // Expose method to apply remote operations
     if (onApplyOperation) {
       onApplyOperation((pos: number, text?: string, length?: number) => {
-        // Increment ignore counter before updating value to skip resulting change events
-        ignoreNextChange.current += 1;
+        // Flag this update so change handlers ignore the resulting synthetic event
+        // markProgrammaticChange();
 
         setValue(prev => {
           const newVal = text !== undefined
-            ? prev.slice(0, pos) + text + prev.slice(pos)
-            : prev.slice(0, pos) + prev.slice(pos + (length || 0));
+            ? prev.slice(0, pos) + text 
+            : prev.slice(0, pos);
           
-          console.log(`Applied remote op: pos=${pos}, text="${text || ''}", len=${length || 0}, newLength=${newVal.length}`);
+          // console.log(`Applied remote op: pos=${pos}, text="${text || ''}", len=${length || 0}, newLength=${newVal.length}`);
           
           // Update ref to track the new value
           lastValueRef.current = newVal;
@@ -43,14 +50,13 @@ export function Editor({ initialDoc, onChange, onCursorChange, onApplyOperation 
         });
       });
     }
-  }, [onApplyOperation]);
+  }, [onApplyOperation, markProgrammaticChange]);
 
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newValue = e.target.value;
-    
-    if (ignoreNextChange.current > 0) {
-      ignoreNextChange.current = Math.max(0, ignoreNextChange.current - 1);
-      console.log('Ignoring local change (from remote op)');
+    if (programmaticChangeDepth.current > 0) {
+      console.log('Ignoring programmatic change event');
+      lastValueRef.current = newValue;
       return;
     }
 
