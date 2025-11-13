@@ -141,10 +141,14 @@ function App() {
       onCursor: (cId, x, y) => {
         // Get existing cursor to preserve the name
         const existingCursor = cursorManagerRef.current.getCursor(cId);
-        const clientInfo = clients.find(c => c.id === cId);
-        const name = existingCursor?.name || clientInfo?.name || cId.slice(0, 8);
-        cursorManagerRef.current.updateCursor(cId, x, y, name);
-        setCursors(cursorManagerRef.current.getAllCursors());
+        // Use callback to get latest clients state
+        setClients(currentClients => {
+          const clientInfo = currentClients.find(c => c.id === cId);
+          const name = existingCursor?.name || clientInfo?.name || cId.slice(0, 8);
+          cursorManagerRef.current.updateCursor(cId, x, y, name);
+          setCursors(cursorManagerRef.current.getAllCursors());
+          return currentClients; // Don't modify clients state
+        });
       },
       onDisconnect: (cId) => {
         setClients(prev => prev.filter(c => c.id !== cId));
