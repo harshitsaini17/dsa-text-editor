@@ -1,4 +1,4 @@
-import React, { useMemo, memo } from 'react';
+import { useMemo, memo } from 'react';
 
 interface StatusBarProps {
   content: string;
@@ -7,9 +7,12 @@ interface StatusBarProps {
 
 export const StatusBar = memo(function StatusBar({ content, cursorPosition }: StatusBarProps) {
   const stats = useMemo(() => {
-    const words = content.trim().split(/\s+/).filter(word => word.length > 0).length;
-    const characters = content.length;
-    const lines = content.split('\n').length;
+    // Strip HTML tags for accurate counting
+    const plainText = content.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ');
+    
+    const words = plainText.trim().split(/\s+/).filter(word => word.length > 0).length;
+    const characters = plainText.length;
+    const lines = plainText.split('\n').length;
     
     // Calculate reading time (average 200 words per minute)
     const readingTime = Math.ceil(words / 200);

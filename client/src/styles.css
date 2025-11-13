@@ -21,7 +21,7 @@ code {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #162660;
 }
 
 .app-header {
@@ -31,17 +31,22 @@ code {
   padding: 1.25rem 2rem;
   background-color: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(10px);
-  border-bottom: 2px solid rgba(102, 126, 234, 0.2);
+  border-bottom: 2px solid #162660;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  position: relative;
+  z-index: 100;
 }
 
 .app-header h1 {
   font-size: 1.75rem;
   font-weight: 700;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: #162660;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
 }
 
 .connection-status {
@@ -51,6 +56,27 @@ code {
   border-radius: 20px;
   background-color: #f0f0f0;
   transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+}
+
+.status-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #D0E6FD;
+  margin-right: 0.5rem;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 
 .app-main {
@@ -63,7 +89,7 @@ code {
 
 .editor-container {
   flex: 1;
-  background-color: #fff;
+  background-color: #f1e4d1;
   border-radius: 12px;
   padding: 1.5rem;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
@@ -73,7 +99,8 @@ code {
 
 .editor {
   width: 100%;
-  height: 100%;
+  flex: 1;
+  min-height: 0;
   font-family: 'Fira Code', 'Monaco', 'Courier New', monospace;
   font-size: 14px;
   line-height: 1.6;
@@ -83,11 +110,76 @@ code {
   resize: none;
   outline: none;
   transition: border-color 0.2s ease;
+  background-color: #fff;
+}
+
+.rich-editor {
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.rich-editor:empty:before {
+  content: attr(data-placeholder);
+  color: #999;
+  font-style: italic;
+}
+
+.rich-editor b, .rich-editor strong {
+  font-weight: bold;
+}
+
+.rich-editor i, .rich-editor em {
+  font-style: italic;
+}
+
+.rich-editor u {
+  text-decoration: underline;
+}
+
+.rich-editor h1 {
+  font-size: 2em;
+  font-weight: bold;
+  margin: 0.67em 0;
+}
+
+.rich-editor h2 {
+  font-size: 1.5em;
+  font-weight: bold;
+  margin: 0.75em 0;
+}
+
+.rich-editor h3 {
+  font-size: 1.17em;
+  font-weight: bold;
+  margin: 0.83em 0;
+}
+
+.rich-editor ul, .rich-editor ol {
+  margin: 1em 0;
+  padding-left: 2em;
+}
+
+.rich-editor pre {
+  background-color: #f4f4f4;
+  padding: 10px;
+  border-radius: 4px;
+  font-family: 'Fira Code', monospace;
+  overflow-x: auto;
+}
+
+.rich-editor a {
+  color: #162660;
+  text-decoration: underline;
+}
+
+.rich-editor a:hover {
+  color: #0d1a3d;
 }
 
 .editor:focus {
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  border-color: #162660;
+  box-shadow: 0 0 0 3px rgba(22, 38, 96, 0.1);
 }
 
 .editor-container:hover {
@@ -387,6 +479,109 @@ code {
   white-space: nowrap;
   box-shadow: 0 2px 4px rgba(0,0,0,0.2);
   pointer-events: none;
+}
+
+/* Clients Dropdown Styles */
+.clients-dropdown {
+  position: relative;
+}
+
+.clients-dropdown-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background-color: #D0E6FD;
+  border: 1px solid #162660;
+  border-radius: 20px;
+  color: #162660;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.clients-dropdown-toggle:hover {
+  background-color: #A8D5FF;
+  border-color: #162660;
+}
+
+.online-count {
+  font-weight: 600;
+}
+
+.clients-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  min-width: 250px;
+  background-color: white;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  z-index: 9999;
+  animation: dropdownSlide 0.2s ease;
+}
+
+@keyframes dropdownSlide {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.clients-dropdown-header {
+  padding: 1rem 1.25rem;
+  border-bottom: 2px solid #162660;
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: #162660;
+}
+
+.clients-list {
+  padding: 0.5rem;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.client-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 0.75rem;
+  border-radius: 8px;
+  transition: background-color 0.2s ease;
+  animation: fadeIn 0.3s ease;
+}
+
+.client-item:hover {
+  background-color: #D0E6FD;
+}
+
+.client-item.current-user {
+  background-color: #F1E4D1;
+  font-weight: 600;
+}
+
+.client-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 700;
+  font-size: 0.9rem;
+  flex-shrink: 0;
+}
+
+.client-name {
+  color: #333;
+  font-size: 0.9rem;
 }
 
 /* Old text cursor styles - kept for backward compatibility, can be removed */

@@ -61,8 +61,40 @@ export function Editor({ initialDoc, onChange, onMouseMove, onApplyOperation, re
     textareaRef,
     value,
     onChange: (newValue) => {
+      const oldValue = lastValueRef.current;
+      
+      // Find what changed
+      let i = 0;
+      while (i < oldValue.length && i < newValue.length && oldValue[i] === newValue[i]) {
+        i++;
+      }
+      
+      let oldEnd = oldValue.length;
+      let newEnd = newValue.length;
+      while (oldEnd > i && newEnd > i && oldValue[oldEnd - 1] === newValue[newEnd - 1]) {
+        oldEnd--;
+        newEnd--;
+      }
+      
+      const deletedCount = oldEnd - i;
+      const insertedText = newValue.slice(i, newEnd);
+      
+      // Update state and ref
       setValue(newValue);
       lastValueRef.current = newValue;
+      
+      // Send changes to server
+      if (deletedCount > 0 && insertedText.length > 0) {
+        // Replace: delete then insert
+        onChange(i, '', true, deletedCount);
+        onChange(i, insertedText, false);
+      } else if (deletedCount > 0) {
+        // Pure delete
+        onChange(i, '', true, deletedCount);
+      } else if (insertedText.length > 0) {
+        // Pure insert
+        onChange(i, insertedText, false);
+      }
     },
   });
 
@@ -105,7 +137,9 @@ export function Editor({ initialDoc, onChange, onMouseMove, onApplyOperation, re
     }
   }, [onApplyOperation, markProgrammaticChange]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+  const handleInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    if (!textareaRef.current) return;
+    
     const newValue = e.target.value;
     if (programmaticChangeDepth.current > 0) {
       console.log('Ignoring programmatic change event');
@@ -491,15 +525,12 @@ export function Editor({ initialDoc, onChange, onMouseMove, onApplyOperation, re
             ref={textareaRef}
             className="editor"
             value={value}
-            onChange={handleChange}
+            onChange={handleInput}
             onSelect={handleSelect}
             onClick={handleSelect}
             onKeyUp={handleSelect}
             onKeyDown={handleKeyDown}
             spellCheck={false}
-            autoComplete="off"
-            autoCorrect="off"
-            autoCapitalize="off"
             placeholder="Start typing..."
           />
         </div>

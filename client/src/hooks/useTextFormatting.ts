@@ -11,215 +11,80 @@ interface UseTextFormattingProps {
   onChange: (value: string) => void;
 }
 
-export function useTextFormatting({ textareaRef, value, onChange }: UseTextFormattingProps) {
+export function useTextFormatting({ textareaRef, onChange }: UseTextFormattingProps) {
   
-  const wrapSelectedText = useCallback((prefix: string, suffix: string = prefix) => {
-    const textarea = textareaRef.current;
-    if (!textarea) return;
-
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const selectedText = value.substring(start, end);
+  const executeCommand = useCallback((command: string, value: string | undefined = undefined) => {
+    if (!textareaRef.current) return;
     
-    if (start === end) {
-      // No selection, insert markers at cursor
-      const newValue = value.substring(0, start) + prefix + suffix + value.substring(end);
-      onChange(newValue);
-      
-      // Move cursor between markers
-      setTimeout(() => {
-        textarea.focus();
-        textarea.setSelectionRange(start + prefix.length, start + prefix.length);
-      }, 0);
-    } else {
-      // Wrap selected text
-      const newValue = 
-        value.substring(0, start) + 
-        prefix + selectedText + suffix + 
-        value.substring(end);
-      
-      onChange(newValue);
-      
-      // Restore selection
-      setTimeout(() => {
-        textarea.focus();
-        textarea.setSelectionRange(
-          start + prefix.length,
-          end + prefix.length
-        );
-      }, 0);
-    }
-  }, [textareaRef, value, onChange]);
+    textareaRef.current.focus();
+    document.execCommand(command, false, value);
+    
+    // Trigger onChange with updated HTML content
+    const newValue = textareaRef.current.value;
+    onChange(newValue);
+  }, [textareaRef, onChange]);
 
   const bold = useCallback(() => {
-    wrapSelectedText('**');
-  }, [wrapSelectedText]);
+    executeCommand('bold');
+  }, [executeCommand]);
 
   const italic = useCallback(() => {
-    wrapSelectedText('*');
-  }, [wrapSelectedText]);
+    executeCommand('italic');
+  }, [executeCommand]);
 
   const underline = useCallback(() => {
-    wrapSelectedText('<u>', '</u>');
-  }, [wrapSelectedText]);
+    executeCommand('underline');
+  }, [executeCommand]);
 
   const strikethrough = useCallback(() => {
-    wrapSelectedText('~~');
-  }, [wrapSelectedText]);
+    executeCommand('strikeThrough');
+  }, [executeCommand]);
 
   const code = useCallback(() => {
-    wrapSelectedText('`');
-  }, [wrapSelectedText]);
+    // Wrap in code tag
+    const selection = window.getSelection();
+    if (!selection || !textareaRef.current) return;
+    
+    const textarea = textareaRef.current;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selectedText = textarea.value.substring(start, end);
+    
+    const newValue = 
+      textarea.value.substring(0, start) + 
+      '`' + selectedText + '`' + 
+      textarea.value.substring(end);
+    
+    onChange(newValue);
+    
+    setTimeout(() => {
+      textarea.focus();
+      textarea.setSelectionRange(start + 1, end + 1);
+    }, 0);
+  }, [textareaRef, onChange]);
 
   const codeBlock = useCallback(() => {
-    wrapSelectedText('```\n', '\n```');
-  }, [wrapSelectedText]);
+    executeCommand('formatBlock', 'pre');
+  }, [executeCommand]);
 
   const heading = useCallback((level: number) => {
-    const textarea = textareaRef.current;
-    if (!textarea) return;
-
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    
-    // Find the start of the current line
-    const lineStart = value.lastIndexOf('\n', start - 1) + 1;
-    const lineEnd = value.indexOf('\n', end);
-    const actualLineEnd = lineEnd === -1 ? value.length : lineEnd;
-    
-    const currentLine = value.substring(lineStart, actualLineEnd);
-    const prefix = '#'.repeat(level) + ' ';
-    
-    // Check if line already has heading
-    const headingMatch = currentLine.match(/^#+\s/);
-    let newLine: string;
-    
-    if (headingMatch) {
-      // Replace existing heading
-      newLine = prefix + currentLine.substring(headingMatch[0].length);
-    } else {
-      // Add new heading
-      newLine = prefix + currentLine;
-    }
-    
-    const newValue = 
-      value.substring(0, lineStart) + 
-      newLine + 
-      value.substring(actualLineEnd);
-    
-    onChange(newValue);
-    
-    setTimeout(() => {
-      textarea.focus();
-      textarea.setSelectionRange(lineStart + prefix.length, lineStart + prefix.length);
-    }, 0);
-  }, [textareaRef, value, onChange]);
+    executeCommand('formatBlock', `h${level}`);
+  }, [executeCommand]);
 
   const link = useCallback(() => {
-    const textarea = textareaRef.current;
-    if (!textarea) return;
-
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const selectedText = value.substring(start, end);
-    
-    if (selectedText) {
-      // Wrap selected text as link
-      const newValue = 
-        value.substring(0, start) + 
-        `[${selectedText}](url)` + 
-        value.substring(end);
-      
-      onChange(newValue);
-      
-      // Select "url" text
-      setTimeout(() => {
-        textarea.focus();
-        const urlStart = start + selectedText.length + 3;
-        textarea.setSelectionRange(urlStart, urlStart + 3);
-      }, 0);
-    } else {
-      // Insert link template
-      const linkTemplate = '[text](url)';
-      const newValue = 
-        value.substring(0, start) + 
-        linkTemplate + 
-        value.substring(end);
-      
-      onChange(newValue);
-      
-      // Select "text"
-      setTimeout(() => {
-        textarea.focus();
-        textarea.setSelectionRange(start + 1, start + 5);
-      }, 0);
+    const url = prompt('Enter URL:');
+    if (url) {
+      executeCommand('createLink', url);
     }
-  }, [textareaRef, value, onChange]);
+  }, [executeCommand]);
 
   const bulletList = useCallback(() => {
-    const textarea = textareaRef.current;
-    if (!textarea) return;
-
-    const start = textarea.selectionStart;
-    const lineStart = value.lastIndexOf('\n', start - 1) + 1;
-    const lineEnd = value.indexOf('\n', start);
-    const actualLineEnd = lineEnd === -1 ? value.length : lineEnd;
-    
-    const currentLine = value.substring(lineStart, actualLineEnd);
-    
-    // Toggle bullet list
-    let newLine: string;
-    if (currentLine.startsWith('- ')) {
-      newLine = currentLine.substring(2);
-    } else {
-      newLine = '- ' + currentLine;
-    }
-    
-    const newValue = 
-      value.substring(0, lineStart) + 
-      newLine + 
-      value.substring(actualLineEnd);
-    
-    onChange(newValue);
-    
-    setTimeout(() => {
-      textarea.focus();
-      textarea.setSelectionRange(lineStart + 2, lineStart + 2);
-    }, 0);
-  }, [textareaRef, value, onChange]);
+    executeCommand('insertUnorderedList');
+  }, [executeCommand]);
 
   const numberedList = useCallback(() => {
-    const textarea = textareaRef.current;
-    if (!textarea) return;
-
-    const start = textarea.selectionStart;
-    const lineStart = value.lastIndexOf('\n', start - 1) + 1;
-    const lineEnd = value.indexOf('\n', start);
-    const actualLineEnd = lineEnd === -1 ? value.length : lineEnd;
-    
-    const currentLine = value.substring(lineStart, actualLineEnd);
-    
-    // Toggle numbered list
-    let newLine: string;
-    const numMatch = currentLine.match(/^\d+\.\s/);
-    if (numMatch) {
-      newLine = currentLine.substring(numMatch[0].length);
-    } else {
-      newLine = '1. ' + currentLine;
-    }
-    
-    const newValue = 
-      value.substring(0, lineStart) + 
-      newLine + 
-      value.substring(actualLineEnd);
-    
-    onChange(newValue);
-    
-    setTimeout(() => {
-      textarea.focus();
-      textarea.setSelectionRange(lineStart + 3, lineStart + 3);
-    }, 0);
-  }, [textareaRef, value, onChange]);
+    executeCommand('insertOrderedList');
+  }, [executeCommand]);
 
   return {
     bold,

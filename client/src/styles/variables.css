@@ -27,9 +27,9 @@
   --color-border-dark: #a3a3a3;
   
   /* Accent colors */
-  --color-accent: #171717;
-  --color-accent-hover: #404040;
-  --color-accent-active: #525252;
+  --color-accent: #162660;
+  --color-accent-hover: #0d1a3d;
+  --color-accent-active: #0a1429;
   
   /* State colors (minimal) */
   --color-success: #10b981;

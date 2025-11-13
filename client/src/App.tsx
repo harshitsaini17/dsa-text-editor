@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Editor } from './SimpleEditor';
+import { RichEditor as Editor } from './RichEditor';
 import { CollabClient } from './connection';
 import { Outbox } from './outbox';
 import { rebaseOperation } from './rebase';
 import { CursorManager } from './cursorManager';
-import { Presence } from './Presence';
+import { ClientsDropdown } from './components/ClientsDropdown';
 import { Operation } from './types';
 
 /**
@@ -253,43 +253,45 @@ function App() {
       )}
       <header className="app-header">
         <h1>Collaborative Editor</h1>
-        <div className="connection-status">
-          {connected && <span className="status-dot"></span>}
-          {connected ? 'Connected' : 'Disconnected'}
-          {clientName && (
-            <>
-              <span className="client-name"> · {clientName}</span>
-              <button 
-                className="change-name-btn" 
-                onClick={() => {
-                  localStorage.removeItem('clientName');
-                  localStorage.removeItem('stableClientId');
-                  window.location.reload();
-                }}
-                title="Change name"
-              >
-                ✏️
-              </button>
-            </>
+        <div className="header-right">
+          {connected && clients.length > 0 && (
+            <ClientsDropdown clients={clients} currentClientId={clientId} />
           )}
+          <div className="connection-status">
+            {connected && <span className="status-dot"></span>}
+            {connected ? 'Connected' : 'Disconnected'}
+            {clientName && (
+              <>
+                <span className="client-name"> · {clientName}</span>
+                <button 
+                  className="change-name-btn" 
+                  onClick={() => {
+                    localStorage.removeItem('clientName');
+                    localStorage.removeItem('stableClientId');
+                    window.location.reload();
+                  }}
+                  title="Change name"
+                >
+                  ✏️
+                </button>
+              </>
+            )}
+          </div>
         </div>
       </header>
       <main className="app-main">
         {!clientName ? (
           <div className="loading">Please enter your name to start...</div>
         ) : connected ? (
-          <>
-            <Editor
-              initialDoc={doc}
-              onChange={handleChange}
-              onMouseMove={handleMouseMove}
-              onApplyOperation={(callback) => {
-                applyOperationRef.current = callback;
-              }}
-              remoteCursors={cursors.filter(c => c.clientId !== clientId)}
-            />
-            <Presence cursors={cursors} currentClientId={clientId} clients={clients} />
-          </>
+          <Editor
+            initialDoc={doc}
+            onChange={handleChange}
+            onMouseMove={handleMouseMove}
+            onApplyOperation={(callback) => {
+              applyOperationRef.current = callback;
+            }}
+            remoteCursors={cursors.filter(c => c.clientId !== clientId)}
+          />
         ) : (
           <div className="loading">Connecting to server...</div>
         )}
