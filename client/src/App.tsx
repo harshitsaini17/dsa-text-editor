@@ -74,7 +74,8 @@ function App() {
   useEffect(() => {
     // Only connect after we have a client name
     if (!clientName) return;
-    const client = new CollabClient('ws://localhost:8080', clientName, {
+    const wsUrl = import.meta.env.VITE_WS_URL || 'ws://localhost:8080';
+    const client = new CollabClient(wsUrl, clientName, {
       onJoined: (id, seq, initialDoc, clientsInfo) => {
         clientIdRef.current = id;
         setClientId(id);
