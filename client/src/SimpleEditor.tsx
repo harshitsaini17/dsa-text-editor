@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { CursorInfo } from './cursorManager';
 import { Toolbar } from './components/Toolbar';
+import { StatusBar } from './components/StatusBar';
 import { useTextFormatting } from './hooks/useTextFormatting';
 
 interface EditorProps {
@@ -17,6 +18,7 @@ export function Editor({ initialDoc, onChange, onMouseMove, onApplyOperation, re
   const lastValueRef = useRef(initialDoc);
   const programmaticChangeDepth = useRef(0);
   const editorContainerRef = useRef<HTMLDivElement>(null);
+  const [cursorPos, setCursorPos] = useState({ line: 1, column: 1 });
 
   const formatting = useTextFormatting({
     textareaRef,
@@ -132,6 +134,15 @@ export function Editor({ initialDoc, onChange, onMouseMove, onApplyOperation, re
     const target = e.target as HTMLTextAreaElement;
     const from = target.selectionStart;
     const to = target.selectionEnd;
+    
+    // Calculate line and column position
+    const textBeforeCursor = value.substring(0, from);
+    const lines = textBeforeCursor.split('\n');
+    const line = lines.length;
+    const column = lines[lines.length - 1].length + 1;
+    
+    setCursorPos({ line, column });
+    
     // Could be used for other purposes if needed
     from; to; // Suppress unused warnings
   };
@@ -230,6 +241,7 @@ export function Editor({ initialDoc, onChange, onMouseMove, onApplyOperation, re
           />
         </div>
       </div>
+      <StatusBar content={value} cursorPosition={cursorPos} />
       <div className="cursors-overlay">
         {remoteCursors.map(cursor => {
           return (
