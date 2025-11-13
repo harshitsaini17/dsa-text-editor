@@ -173,6 +173,15 @@ export function Editor({ initialDoc, onChange, onMouseMove, onApplyOperation, re
       case 'numberedList':
         formatting.numberedList();
         break;
+      case 'h1':
+        formatting.heading(1);
+        break;
+      case 'h2':
+        formatting.heading(2);
+        break;
+      case 'h3':
+        formatting.heading(3);
+        break;
       case 'alignLeft':
       case 'alignCenter':
       case 'alignRight':

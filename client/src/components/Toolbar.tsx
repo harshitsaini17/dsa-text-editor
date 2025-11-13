@@ -92,6 +92,37 @@ export function Toolbar({ onFormat }: ToolbarProps) {
       <div className="toolbar-group">
         <button
           className="toolbar-button"
+          onClick={() => handleButtonClick('h1')}
+          title="Heading 1"
+          aria-label="Heading 1"
+        >
+          <span className="toolbar-text">H1</span>
+        </button>
+
+        <button
+          className="toolbar-button"
+          onClick={() => handleButtonClick('h2')}
+          title="Heading 2"
+          aria-label="Heading 2"
+        >
+          <span className="toolbar-text">H2</span>
+        </button>
+
+        <button
+          className="toolbar-button"
+          onClick={() => handleButtonClick('h3')}
+          title="Heading 3"
+          aria-label="Heading 3"
+        >
+          <span className="toolbar-text">H3</span>
+        </button>
+      </div>
+
+      <div className="toolbar-separator" />
+
+      <div className="toolbar-group">
+        <button
+          className="toolbar-button"
           onClick={() => handleButtonClick('link')}
           title="Insert Link (Ctrl+K)"
           aria-label="Insert Link"

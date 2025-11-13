@@ -10,3 +10,6 @@ server/logs
 *.log
 *.tmp
 
+*.md
+
+!README.md

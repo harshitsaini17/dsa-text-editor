@@ -234,3 +234,5 @@ export function useTextFormatting({ textareaRef, value, onChange }: UseTextForma
     numberedList,
   };
 }
+
+export type FormattingActions = ReturnType<typeof useTextFormatting>;
