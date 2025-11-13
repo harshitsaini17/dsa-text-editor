@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Editor } from './SimpleEditor';
 import { CollabClient } from './connection';
 import { Outbox } from './outbox';
@@ -28,6 +28,20 @@ function App() {
   const pendingOpsQueue = useRef<Operation[]>([]);
   const isWaitingForAck = useRef(false);
   const lastMouseMoveTime = useRef<number>(0);
+  const cursorUpdateTimeout = useRef<number | null>(null);
+  const pendingCursorUpdates = useRef<Map<string, { x: number; y: number; name: string }>>(new Map());
+
+  // Batch cursor updates to reduce re-renders
+  const flushCursorUpdates = useCallback(() => {
+    if (pendingCursorUpdates.current.size > 0) {
+      pendingCursorUpdates.current.forEach((update, cId) => {
+        cursorManagerRef.current.updateCursor(cId, update.x, update.y, update.name);
+      });
+      setCursors(cursorManagerRef.current.getAllCursors());
+      pendingCursorUpdates.current.clear();
+    }
+    cursorUpdateTimeout.current = null;
+  }, []);
 
   // Check for saved name in localStorage on mount
   useEffect(() => {
@@ -145,8 +159,14 @@ function App() {
         setClients(currentClients => {
           const clientInfo = currentClients.find(c => c.id === cId);
           const name = existingCursor?.name || clientInfo?.name || cId.slice(0, 8);
-          cursorManagerRef.current.updateCursor(cId, x, y, name);
-          setCursors(cursorManagerRef.current.getAllCursors());
+          
+          // Batch cursor updates
+          pendingCursorUpdates.current.set(cId, { x, y, name });
+          
+          if (cursorUpdateTimeout.current === null) {
+            cursorUpdateTimeout.current = window.setTimeout(flushCursorUpdates, 50);
+          }
+          
           return currentClients; // Don't modify clients state
         });
       },
