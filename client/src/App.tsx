@@ -232,12 +232,13 @@ function App() {
         </div>
       )}
       <header className="app-header">
-        <h1>Collaborative Text Editor</h1>
+        <h1>Collaborative Editor</h1>
         <div className="connection-status">
-          {connected ? '🟢 Connected' : '🔴 Disconnected'}
+          {connected && <span className="status-dot"></span>}
+          {connected ? 'Connected' : 'Disconnected'}
           {clientName && (
             <>
-              <span className="client-name"> • {clientName}</span>
+              <span className="client-name"> · {clientName}</span>
               <button 
                 className="change-name-btn" 
                 onClick={() => {
