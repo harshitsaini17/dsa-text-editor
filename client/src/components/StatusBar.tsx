@@ -1,11 +1,11 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, memo } from 'react';
 
 interface StatusBarProps {
   content: string;
   cursorPosition?: { line: number; column: number };
 }
 
-export function StatusBar({ content, cursorPosition }: StatusBarProps) {
+export const StatusBar = memo(function StatusBar({ content, cursorPosition }: StatusBarProps) {
   const stats = useMemo(() => {
     const words = content.trim().split(/\s+/).filter(word => word.length > 0).length;
     const characters = content.length;
@@ -52,4 +52,4 @@ export function StatusBar({ content, cursorPosition }: StatusBarProps) {
       </div>
     </div>
   );
-}
+});

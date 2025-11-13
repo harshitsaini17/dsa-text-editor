@@ -1,9 +1,37 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, useMemo, memo } from 'react';
 import { CursorInfo } from './cursorManager';
 import { Toolbar } from './components/Toolbar';
 import { StatusBar } from './components/StatusBar';
 import { FindReplace } from './components/FindReplace';
 import { useTextFormatting } from './hooks/useTextFormatting';
+
+// Memoized cursor component to prevent unnecessary re-renders
+const RemoteCursor = memo(({ cursor }: { cursor: CursorInfo }) => {
+  return (
+    <div
+      className="remote-cursor-pointer"
+      style={{
+        left: `${cursor.x}px`,
+        top: `${cursor.y}px`,
+      }}
+    >
+      <svg
+        width="24"
+        height="24"
+        viewBox="0 0 24 24"
+        fill={cursor.color}
+        style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))' }}
+      >
+        <path d="M5 3L19 12L12 13L9 20L5 3Z" />
+      </svg>
+      <div className="cursor-label" style={{ backgroundColor: cursor.color }}>
+        {cursor.name}
+      </div>
+    </div>
+  );
+});
+
+RemoteCursor.displayName = 'RemoteCursor';
 
 interface EditorProps {
   initialDoc: string;
@@ -355,6 +383,9 @@ export function Editor({ initialDoc, onChange, onMouseMove, onApplyOperation, re
     setCurrentMatchIndex(0);
   }, [value, onChange]);
 
+  // Memoize remote cursors to prevent unnecessary re-renders
+  const memoizedRemoteCursors = useMemo(() => remoteCursors, [remoteCursors]);
+
   return (
     <div 
       ref={editorContainerRef}
@@ -398,31 +429,9 @@ export function Editor({ initialDoc, onChange, onMouseMove, onApplyOperation, re
       </div>
       <StatusBar content={value} cursorPosition={cursorPos} />
       <div className="cursors-overlay">
-        {remoteCursors.map(cursor => {
-          return (
-            <div
-              key={cursor.clientId}
-              className="remote-cursor-pointer"
-              style={{
-                left: `${cursor.x}px`,
-                top: `${cursor.y}px`,
-              }}
-            >
-              <svg
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill={cursor.color}
-                style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))' }}
-              >
-                <path d="M5 3L19 12L12 13L9 20L5 3Z" />
-              </svg>
-              <div className="cursor-label" style={{ backgroundColor: cursor.color }}>
-                {cursor.name}
-              </div>
-            </div>
-          );
-        })}
+        {memoizedRemoteCursors.map(cursor => (
+          <RemoteCursor key={cursor.clientId} cursor={cursor} />
+        ))}
       </div>
     </div>
   );

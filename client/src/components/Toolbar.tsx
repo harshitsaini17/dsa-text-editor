@@ -1,13 +1,13 @@
-import React from 'react';
+import React, { memo, useCallback } from 'react';
 
 interface ToolbarProps {
   onFormat: (format: string) => void;
 }
 
-export function Toolbar({ onFormat }: ToolbarProps) {
-  const handleButtonClick = (format: string) => {
+export const Toolbar = memo(function Toolbar({ onFormat }: ToolbarProps) {
+  const handleButtonClick = useCallback((format: string) => {
     onFormat(format);
-  };
+  }, [onFormat]);
 
   return (
     <div className="toolbar">
@@ -247,4 +247,4 @@ export function Toolbar({ onFormat }: ToolbarProps) {
       </div>
     </div>
   );
-}
+});
