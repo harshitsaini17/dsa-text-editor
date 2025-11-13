@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { CursorInfo } from './cursorManager';
 import { Toolbar } from './components/Toolbar';
+import { useTextFormatting } from './hooks/useTextFormatting';
 
 interface EditorProps {
   initialDoc: string;
@@ -16,6 +17,15 @@ export function Editor({ initialDoc, onChange, onMouseMove, onApplyOperation, re
   const lastValueRef = useRef(initialDoc);
   const programmaticChangeDepth = useRef(0);
   const editorContainerRef = useRef<HTMLDivElement>(null);
+
+  const formatting = useTextFormatting({
+    textareaRef,
+    value,
+    onChange: (newValue) => {
+      setValue(newValue);
+      lastValueRef.current = newValue;
+    },
+  });
 
   const markProgrammaticChange = useCallback(() => {
     // programmaticChangeDepth.current += 1;
@@ -127,9 +137,69 @@ export function Editor({ initialDoc, onChange, onMouseMove, onApplyOperation, re
   };
 
   const handleFormat = (format: string) => {
-    // Placeholder for text formatting
-    // Will be implemented in next phase
-    console.log('Format:', format);
+    switch (format) {
+      case 'bold':
+        formatting.bold();
+        break;
+      case 'italic':
+        formatting.italic();
+        break;
+      case 'underline':
+        formatting.underline();
+        break;
+      case 'strikethrough':
+        formatting.strikethrough();
+        break;
+      case 'code':
+        formatting.codeBlock();
+        break;
+      case 'link':
+        formatting.link();
+        break;
+      case 'bulletList':
+        formatting.bulletList();
+        break;
+      case 'numberedList':
+        formatting.numberedList();
+        break;
+      case 'alignLeft':
+      case 'alignCenter':
+      case 'alignRight':
+        // Alignment will be handled in future phase
+        console.log('Alignment:', format);
+        break;
+      default:
+        console.log('Format not implemented:', format);
+    }
+  };
+
+  // Keyboard shortcuts handler
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+    const modKey = isMac ? e.metaKey : e.ctrlKey;
+
+    if (modKey) {
+      switch (e.key.toLowerCase()) {
+        case 'b':
+          e.preventDefault();
+          formatting.bold();
+          break;
+        case 'i':
+          e.preventDefault();
+          formatting.italic();
+          break;
+        case 'u':
+          e.preventDefault();
+          formatting.underline();
+          break;
+        case 'k':
+          e.preventDefault();
+          formatting.link();
+          break;
+        default:
+          break;
+      }
+    }
   };
 
   return (
@@ -151,6 +221,7 @@ export function Editor({ initialDoc, onChange, onMouseMove, onApplyOperation, re
             onSelect={handleSelect}
             onClick={handleSelect}
             onKeyUp={handleSelect}
+            onKeyDown={handleKeyDown}
             spellCheck={false}
             autoComplete="off"
             autoCorrect="off"
