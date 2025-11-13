@@ -4,16 +4,17 @@ import { CursorInfo } from './cursorManager';
 interface EditorProps {
   initialDoc: string;
   onChange: (pos: number, text: string, isDelete: boolean, length?: number) => void;
-  onCursorChange: (from: number, to: number) => void;
+  onMouseMove: (x: number, y: number) => void;
   onApplyOperation?: (callback: (pos: number, text?: string, length?: number) => void) => void;
   remoteCursors?: CursorInfo[];
 }
 
-export function Editor({ initialDoc, onChange, onCursorChange, onApplyOperation, remoteCursors = [] }: EditorProps) {
+export function Editor({ initialDoc, onChange, onMouseMove, onApplyOperation, remoteCursors = [] }: EditorProps) {
   const [value, setValue] = useState(initialDoc);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const lastValueRef = useRef(initialDoc);
   const programmaticChangeDepth = useRef(0);
+  const editorContainerRef = useRef<HTMLDivElement>(null);
 
   const markProgrammaticChange = useCallback(() => {
     // programmaticChangeDepth.current += 1;
@@ -106,34 +107,30 @@ export function Editor({ initialDoc, onChange, onCursorChange, onApplyOperation,
     setValue(newValue);
   };
 
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (editorContainerRef.current) {
+      const rect = editorContainerRef.current.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      onMouseMove(x, y);
+    }
+  };
+
   const handleSelect = (e: React.SyntheticEvent<HTMLTextAreaElement>) => {
+    // Keep selection handling for textarea, but don't send as cursor position
     const target = e.target as HTMLTextAreaElement;
     const from = target.selectionStart;
     const to = target.selectionEnd;
-    onCursorChange(from, to);
-  };
-
-  // Calculate cursor position in pixels
-  const getCursorCoordinates = (position: number): { top: number; left: number } => {
-    if (!textareaRef.current) return { top: 0, left: 0 };
-    
-    const text = value.substring(0, position);
-    const lines = text.split('\n');
-    const currentLine = lines.length - 1;
-    const currentColumn = lines[lines.length - 1].length;
-    
-    // Approximate line height and character width
-    const lineHeight = 24; // matches CSS
-    const charWidth = 8.4; // approximate for monospace font
-    
-    const top = currentLine * lineHeight + 12; // 12px padding
-    const left = currentColumn * charWidth + 12; // 12px padding
-    
-    return { top, left };
+    // Could be used for other purposes if needed
+    from; to; // Suppress unused warnings
   };
 
   return (
-    <div className="editor-container">
+    <div 
+      ref={editorContainerRef}
+      className="editor-container" 
+      onMouseMove={handleMouseMove}
+    >
       <textarea
         ref={textareaRef}
         className="editor"
@@ -150,18 +147,25 @@ export function Editor({ initialDoc, onChange, onCursorChange, onApplyOperation,
       />
       <div className="cursors-overlay">
         {remoteCursors.map(cursor => {
-          const pos = getCursorCoordinates(cursor.from);
           return (
             <div
               key={cursor.clientId}
-              className="remote-cursor"
+              className="remote-cursor-pointer"
               style={{
-                top: `${pos.top}px`,
-                left: `${pos.left}px`,
-                borderColor: cursor.color,
+                left: `${cursor.x}px`,
+                top: `${cursor.y}px`,
               }}
             >
-              <div className="cursor-flag" style={{ backgroundColor: cursor.color }}>
+              <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill={cursor.color}
+                style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))' }}
+              >
+                <path d="M5 3L19 12L12 13L9 20L5 3Z" />
+              </svg>
+              <div className="cursor-label" style={{ backgroundColor: cursor.color }}>
                 {cursor.name}
               </div>
             </div>

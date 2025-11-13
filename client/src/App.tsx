@@ -27,6 +27,7 @@ function App() {
   const applyOperationRef = useRef<((pos: number, text?: string, length?: number) => void) | null>(null);
   const pendingOpsQueue = useRef<Operation[]>([]);
   const isWaitingForAck = useRef(false);
+  const lastMouseMoveTime = useRef<number>(0);
 
   // Check for saved name in localStorage on mount
   useEffect(() => {
@@ -72,10 +73,10 @@ function App() {
         // Store all connected clients
         setClients(clientsInfo.map(c => ({ id: c.id, name: c.name, color: c.color })));
         
-        // Initialize cursors for existing clients
+        // Initialize cursors for existing clients at origin
         clientsInfo.forEach(c => {
           if (c.id !== id) {
-            cursorManagerRef.current.updateCursor(c.id, c.cursorPos, c.cursorPos, c.name);
+            cursorManagerRef.current.updateCursor(c.id, c.cursorX || 0, c.cursorY || 0, c.name);
           }
         });
         setCursors(cursorManagerRef.current.getAllCursors());
@@ -120,12 +121,7 @@ function App() {
           }
         }
 
-        // Shift cursors if needed
-        if (op.type === 'insert' && op.text) {
-          cursorManagerRef.current.shiftCursors(op.pos, op.text.length);
-        } else if (op.type === 'delete' && op.len) {
-          cursorManagerRef.current.shiftCursors(op.pos, -op.len);
-        }
+        // Mouse cursors don't need position shifting for text operations
       },
       onAck: (seq) => {
         console.log(`Received ACK for clientSeq: ${seq}, outbox size before: ${outboxRef.current.size()}, queue length: ${pendingOpsQueue.current.length}`);
@@ -142,8 +138,12 @@ function App() {
         isWaitingForAck.current = false;
         sendNextOperation();
       },
-      onCursor: (cId, from, to) => {
-        cursorManagerRef.current.updateCursor(cId, from, to);
+      onCursor: (cId, x, y) => {
+        // Get existing cursor to preserve the name
+        const existingCursor = cursorManagerRef.current.getCursor(cId);
+        const clientInfo = clients.find(c => c.id === cId);
+        const name = existingCursor?.name || clientInfo?.name || cId.slice(0, 8);
+        cursorManagerRef.current.updateCursor(cId, x, y, name);
         setCursors(cursorManagerRef.current.getAllCursors());
       },
       onDisconnect: (cId) => {
@@ -194,9 +194,15 @@ function App() {
     isWaitingForAck.current = true;
   };
 
-  const handleCursorChange = (from: number, to: number) => {
+  const handleMouseMove = (x: number, y: number) => {
     if (connected) {
-      clientRef.current?.sendCursor(from, to);
+      // Throttle to max 60fps (approximately 16ms between updates)
+      const now = Date.now();
+      if (now - lastMouseMoveTime.current < 16) {
+        return;
+      }
+      lastMouseMoveTime.current = now;
+      clientRef.current?.sendCursor(x, y);
     }
   };
 
@@ -251,7 +257,7 @@ function App() {
             <Editor
               initialDoc={doc}
               onChange={handleChange}
-              onCursorChange={handleCursorChange}
+              onMouseMove={handleMouseMove}
               onApplyOperation={(callback) => {
                 applyOperationRef.current = callback;
               }}

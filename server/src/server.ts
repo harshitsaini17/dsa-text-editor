@@ -119,7 +119,8 @@ export class CollabServer {
         id: clientId,
         name: clientName,
         color,
-        cursorPos: 0,
+        cursorX: 0,
+        cursorY: 0,
       },
     });
 

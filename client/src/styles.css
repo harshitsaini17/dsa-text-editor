@@ -353,6 +353,7 @@ code {
   position: relative;
   flex: 1;
   overflow: hidden;
+  cursor: crosshair;
 }
 
 .cursors-overlay {
@@ -365,6 +366,30 @@ code {
   overflow: hidden;
 }
 
+/* Pointer-style cursor (like Figma/Miro) */
+.remote-cursor-pointer {
+  position: absolute;
+  pointer-events: none;
+  z-index: 100;
+  transform: translate(-2px, -2px);
+  transition: all 0.1s ease-out;
+}
+
+.cursor-label {
+  position: absolute;
+  top: 20px;
+  left: 8px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: white;
+  white-space: nowrap;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  pointer-events: none;
+}
+
+/* Old text cursor styles - kept for backward compatibility, can be removed */
 .remote-cursor {
   position: absolute;
   width: 2px;

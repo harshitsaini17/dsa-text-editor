@@ -4,7 +4,8 @@ type ClientInfo = {
   id: string;
   name: string;
   color: string;
-  cursorPos: number;
+  cursorX: number;
+  cursorY: number;
 };
 
 type MessageHandler = {
@@ -12,7 +13,7 @@ type MessageHandler = {
   onJoin: (clientId: string, clientName: string, color: string) => void;
   onOperation: (op: Operation) => void;
   onAck: (seq: number) => void;
-  onCursor: (clientId: string, from: number, to: number) => void;
+  onCursor: (clientId: string, x: number, y: number) => void;
   onDisconnect: (clientId: string) => void;
 };
 
@@ -71,8 +72,8 @@ export class CollabClient {
     this.send({ type: 'op', docId: 'default', operation: op });
   }
 
-  sendCursor(from: number, to: number): void {
-    this.send({ type: 'cursor', docId: 'default', clientId: this.clientId, from, to });
+  sendCursor(x: number, y: number): void {
+    this.send({ type: 'cursor', docId: 'default', clientId: this.clientId, x, y });
   }
 
   private send(msg: unknown): void {
@@ -108,8 +109,8 @@ export class CollabClient {
       case 'cursor':
         this.handlers.onCursor(
           msg.clientId as string,
-          msg.from as number,
-          msg.to as number
+          msg.x as number,
+          msg.y as number
         );
         break;
       case 'disconnect':

@@ -49,7 +49,8 @@ export interface ClientInfo {
   id: string;
   name: string;
   color: string;
-  cursorPos: number;
+  cursorX: number;
+  cursorY: number;
 }
 
 /**
@@ -96,8 +97,8 @@ export interface AckMessage extends Message {
  */
 export interface CursorMessage extends Message {
   type: 'cursor';
-  pos: number;
-  selection?: { start: number; end: number };
+  x: number;
+  y: number;
 }
 
 /**
