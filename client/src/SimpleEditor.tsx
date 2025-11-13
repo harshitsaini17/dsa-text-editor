@@ -1,13 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { CursorInfo } from './cursorManager';
 
 interface EditorProps {
   initialDoc: string;
   onChange: (pos: number, text: string, isDelete: boolean, length?: number) => void;
   onCursorChange: (from: number, to: number) => void;
   onApplyOperation?: (callback: (pos: number, text?: string, length?: number) => void) => void;
+  remoteCursors?: CursorInfo[];
 }
 
-export function Editor({ initialDoc, onChange, onCursorChange, onApplyOperation }: EditorProps) {
+export function Editor({ initialDoc, onChange, onCursorChange, onApplyOperation, remoteCursors = [] }: EditorProps) {
   const [value, setValue] = useState(initialDoc);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const lastValueRef = useRef(initialDoc);
@@ -38,7 +40,7 @@ export function Editor({ initialDoc, onChange, onCursorChange, onApplyOperation 
 
         setValue(prev => {
           const newVal = text !== undefined
-            ? prev.slice(0, pos) + text 
+            ? prev.slice(0, pos) + text + prev.slice(pos + (length || 0))
             : prev.slice(0, pos);
           
           // console.log(`Applied remote op: pos=${pos}, text="${text || ''}", len=${length || 0}, newLength=${newVal.length}`);
@@ -111,20 +113,61 @@ export function Editor({ initialDoc, onChange, onCursorChange, onApplyOperation 
     onCursorChange(from, to);
   };
 
+  // Calculate cursor position in pixels
+  const getCursorCoordinates = (position: number): { top: number; left: number } => {
+    if (!textareaRef.current) return { top: 0, left: 0 };
+    
+    const text = value.substring(0, position);
+    const lines = text.split('\n');
+    const currentLine = lines.length - 1;
+    const currentColumn = lines[lines.length - 1].length;
+    
+    // Approximate line height and character width
+    const lineHeight = 24; // matches CSS
+    const charWidth = 8.4; // approximate for monospace font
+    
+    const top = currentLine * lineHeight + 12; // 12px padding
+    const left = currentColumn * charWidth + 12; // 12px padding
+    
+    return { top, left };
+  };
+
   return (
-    <textarea
-      ref={textareaRef}
-      className="editor"
-      value={value}
-      onChange={handleChange}
-      onSelect={handleSelect}
-      onClick={handleSelect}
-      onKeyUp={handleSelect}
-      spellCheck={false}
-      autoComplete="off"
-      autoCorrect="off"
-      autoCapitalize="off"
-      placeholder="Start typing..."
-    />
+    <div className="editor-container">
+      <textarea
+        ref={textareaRef}
+        className="editor"
+        value={value}
+        onChange={handleChange}
+        onSelect={handleSelect}
+        onClick={handleSelect}
+        onKeyUp={handleSelect}
+        spellCheck={false}
+        autoComplete="off"
+        autoCorrect="off"
+        autoCapitalize="off"
+        placeholder="Start typing..."
+      />
+      <div className="cursors-overlay">
+        {remoteCursors.map(cursor => {
+          const pos = getCursorCoordinates(cursor.from);
+          return (
+            <div
+              key={cursor.clientId}
+              className="remote-cursor"
+              style={{
+                top: `${pos.top}px`,
+                left: `${pos.left}px`,
+                borderColor: cursor.color,
+              }}
+            >
+              <div className="cursor-flag" style={{ backgroundColor: cursor.color }}>
+                {cursor.name}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 }

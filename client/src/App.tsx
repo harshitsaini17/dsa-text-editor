@@ -255,6 +255,7 @@ function App() {
               onApplyOperation={(callback) => {
                 applyOperationRef.current = callback;
               }}
+              remoteCursors={cursors.filter(c => c.clientId !== clientId)}
             />
             <Presence cursors={cursors} currentClientId={clientId} clients={clients} />
           </>
