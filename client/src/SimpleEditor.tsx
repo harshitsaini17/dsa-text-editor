@@ -4,6 +4,7 @@ import { Toolbar } from './components/Toolbar';
 import { StatusBar } from './components/StatusBar';
 import { FindReplace } from './components/FindReplace';
 import { useTextFormatting } from './hooks/useTextFormatting';
+import { useHistory } from './hooks/useHistory';
 
 // Memoized cursor component to prevent unnecessary re-renders
 const RemoteCursor = memo(({ cursor }: { cursor: CursorInfo }) => {
@@ -51,6 +52,10 @@ export function Editor({ initialDoc, onChange, onMouseMove, onApplyOperation, re
   const [showFind, setShowFind] = useState(false);
   const [findMatches, setFindMatches] = useState<{ start: number; end: number }[]>([]);
   const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
+  
+  // History management
+  const history = useHistory(initialDoc);
+  const historyTimeoutRef = useRef<number | null>(null);
 
   const formatting = useTextFormatting({
     textareaRef,
@@ -150,6 +155,15 @@ export function Editor({ initialDoc, onChange, onMouseMove, onApplyOperation, re
     }
     
     setValue(newValue);
+    
+    // Debounced history push - save to history after 500ms of inactivity
+    if (historyTimeoutRef.current !== null) {
+      window.clearTimeout(historyTimeoutRef.current);
+    }
+    historyTimeoutRef.current = window.setTimeout(() => {
+      const cursorPosition = textareaRef.current?.selectionStart || 0;
+      history.pushToHistory(newValue, cursorPosition);
+    }, 500);
   };
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -232,6 +246,23 @@ export function Editor({ initialDoc, onChange, onMouseMove, onApplyOperation, re
 
     if (modKey) {
       switch (e.key.toLowerCase()) {
+        case 'z':
+          e.preventDefault();
+          if (e.shiftKey) {
+            // Redo: Ctrl+Shift+Z or Cmd+Shift+Z
+            handleRedo();
+          } else {
+            // Undo: Ctrl+Z or Cmd+Z
+            handleUndo();
+          }
+          break;
+        case 'y':
+          // Redo: Ctrl+Y (Windows/Linux)
+          if (!isMac) {
+            e.preventDefault();
+            handleRedo();
+          }
+          break;
         case 'b':
           e.preventDefault();
           formatting.bold();
@@ -261,6 +292,52 @@ export function Editor({ initialDoc, onChange, onMouseMove, onApplyOperation, re
       }
     }
   };
+
+  const handleUndo = useCallback(() => {
+    const previousState = history.undo();
+    if (previousState && textareaRef.current) {
+      lastValueRef.current = previousState.content;
+      setValue(previousState.content);
+      
+      // Restore cursor position
+      setTimeout(() => {
+        if (textareaRef.current) {
+          textareaRef.current.setSelectionRange(
+            previousState.cursorPosition,
+            previousState.cursorPosition
+          );
+          textareaRef.current.focus();
+        }
+      }, 0);
+      
+      // Notify server of the change
+      onChange(0, '', true, value.length);
+      onChange(0, previousState.content, false);
+    }
+  }, [history, onChange, value.length]);
+
+  const handleRedo = useCallback(() => {
+    const nextState = history.redo();
+    if (nextState && textareaRef.current) {
+      lastValueRef.current = nextState.content;
+      setValue(nextState.content);
+      
+      // Restore cursor position
+      setTimeout(() => {
+        if (textareaRef.current) {
+          textareaRef.current.setSelectionRange(
+            nextState.cursorPosition,
+            nextState.cursorPosition
+          );
+          textareaRef.current.focus();
+        }
+      }, 0);
+      
+      // Notify server of the change
+      onChange(0, '', true, value.length);
+      onChange(0, nextState.content, false);
+    }
+  }, [history, onChange, value.length]);
 
   // Find & Replace handlers
   const handleFind = useCallback((searchText: string, matchCase: boolean, wholeWord: boolean) => {
