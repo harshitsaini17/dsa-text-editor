@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { CursorInfo } from './cursorManager';
 import { Toolbar } from './components/Toolbar';
 import { StatusBar } from './components/StatusBar';
+import { FindReplace } from './components/FindReplace';
 import { useTextFormatting } from './hooks/useTextFormatting';
 
 interface EditorProps {
@@ -19,6 +20,9 @@ export function Editor({ initialDoc, onChange, onMouseMove, onApplyOperation, re
   const programmaticChangeDepth = useRef(0);
   const editorContainerRef = useRef<HTMLDivElement>(null);
   const [cursorPos, setCursorPos] = useState({ line: 1, column: 1 });
+  const [showFind, setShowFind] = useState(false);
+  const [findMatches, setFindMatches] = useState<{ start: number; end: number }[]>([]);
+  const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
 
   const formatting = useTextFormatting({
     textareaRef,
@@ -216,11 +220,140 @@ export function Editor({ initialDoc, onChange, onMouseMove, onApplyOperation, re
           e.preventDefault();
           formatting.link();
           break;
+        case 'f':
+          e.preventDefault();
+          setShowFind(true);
+          break;
+        case 'h':
+          e.preventDefault();
+          setShowFind(true);
+          break;
         default:
           break;
       }
     }
   };
+
+  // Find & Replace handlers
+  const handleFind = useCallback((searchText: string, matchCase: boolean, wholeWord: boolean) => {
+    if (!searchText || !textareaRef.current) {
+      setFindMatches([]);
+      setCurrentMatchIndex(0);
+      return;
+    }
+
+    const content = textareaRef.current.value;
+    const matches: { start: number; end: number }[] = [];
+    
+    let pattern = searchText;
+    if (wholeWord) {
+      pattern = `\\b${pattern}\\b`;
+    }
+    
+    const flags = matchCase ? 'g' : 'gi';
+    const regex = new RegExp(pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), flags);
+    
+    let match;
+    while ((match = regex.exec(content)) !== null) {
+      matches.push({
+        start: match.index,
+        end: match.index + match[0].length
+      });
+    }
+    
+    setFindMatches(matches);
+    setCurrentMatchIndex(0);
+    
+    if (matches.length > 0) {
+      textareaRef.current.setSelectionRange(matches[0].start, matches[0].end);
+      textareaRef.current.focus();
+    }
+  }, []);
+
+  const handleFindNext = useCallback(() => {
+    if (findMatches.length === 0 || !textareaRef.current) return;
+    
+    const nextIndex = (currentMatchIndex + 1) % findMatches.length;
+    setCurrentMatchIndex(nextIndex);
+    
+    const match = findMatches[nextIndex];
+    textareaRef.current.setSelectionRange(match.start, match.end);
+    textareaRef.current.focus();
+  }, [findMatches, currentMatchIndex]);
+
+  const handleFindPrevious = useCallback(() => {
+    if (findMatches.length === 0 || !textareaRef.current) return;
+    
+    const prevIndex = currentMatchIndex === 0 ? findMatches.length - 1 : currentMatchIndex - 1;
+    setCurrentMatchIndex(prevIndex);
+    
+    const match = findMatches[prevIndex];
+    textareaRef.current.setSelectionRange(match.start, match.end);
+    textareaRef.current.focus();
+  }, [findMatches, currentMatchIndex]);
+
+  const handleReplace = useCallback((replaceText: string) => {
+    if (findMatches.length === 0 || !textareaRef.current) return;
+    
+    const match = findMatches[currentMatchIndex];
+    const newValue = 
+      value.substring(0, match.start) + 
+      replaceText + 
+      value.substring(match.end);
+    
+    // Update state and trigger onChange events
+    lastValueRef.current = newValue;
+    setValue(newValue);
+    
+    // Notify parent of change
+    const deletedCount = match.end - match.start;
+    if (deletedCount > 0 && replaceText.length > 0) {
+      onChange(match.start, '', true, deletedCount);
+      onChange(match.start, replaceText, false);
+    } else if (deletedCount > 0) {
+      onChange(match.start, '', true, deletedCount);
+    } else if (replaceText.length > 0) {
+      onChange(match.start, replaceText, false);
+    }
+    
+    // Adjust selection to the replaced text
+    setTimeout(() => {
+      if (textareaRef.current) {
+        textareaRef.current.setSelectionRange(
+          match.start,
+          match.start + replaceText.length
+        );
+        textareaRef.current.focus();
+      }
+    }, 0);
+  }, [value, findMatches, currentMatchIndex, onChange]);
+
+  const handleReplaceAll = useCallback((searchText: string, replaceText: string, matchCase: boolean, wholeWord: boolean) => {
+    if (!searchText || !textareaRef.current) return;
+    
+    let pattern = searchText;
+    if (wholeWord) {
+      pattern = `\\b${pattern}\\b`;
+    }
+    
+    const flags = matchCase ? 'g' : 'gi';
+    const regex = new RegExp(pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), flags);
+    
+    const oldValue = value;
+    const newValue = value.replace(regex, replaceText);
+    
+    if (oldValue !== newValue) {
+      lastValueRef.current = newValue;
+      setValue(newValue);
+      
+      // Send a full replacement to server
+      onChange(0, '', true, oldValue.length);
+      onChange(0, newValue, false);
+    }
+    
+    setFindMatches([]);
+    setCurrentMatchIndex(0);
+  }, [value, onChange]);
 
   return (
     <div 
@@ -232,6 +365,19 @@ export function Editor({ initialDoc, onChange, onMouseMove, onApplyOperation, re
         <div className="editor-toolbar-container">
           <Toolbar onFormat={handleFormat} />
         </div>
+        {showFind && (
+          <FindReplace
+            content={value}
+            onFind={handleFind}
+            onFindNext={handleFindNext}
+            onFindPrevious={handleFindPrevious}
+            onReplace={handleReplace}
+            onReplaceAll={handleReplaceAll}
+            onClose={() => setShowFind(false)}
+            matchCount={findMatches.length}
+            currentMatch={findMatches.length > 0 ? currentMatchIndex + 1 : 0}
+          />
+        )}
         <div className="editor-content-with-toolbar">
           <textarea
             ref={textareaRef}
