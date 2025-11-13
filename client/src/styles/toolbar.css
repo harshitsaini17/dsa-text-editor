@@ -1,0 +1,90 @@
+/**
+ * Toolbar Component Styles
+ * Floating toolbar with text formatting controls
+ */
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  background-color: var(--color-bg-elevated);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  margin-bottom: var(--space-4);
+  transition: all var(--transition-base);
+}
+
+.toolbar:hover {
+  box-shadow: var(--shadow-lg);
+}
+
+.toolbar-group {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.toolbar-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  background-color: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.toolbar-button:hover {
+  background-color: var(--color-bg-hover);
+  color: var(--color-text-primary);
+}
+
+.toolbar-button:active {
+  background-color: var(--color-bg-tertiary);
+  transform: scale(0.95);
+}
+
+.toolbar-button.active {
+  background-color: var(--color-accent);
+  color: var(--color-text-inverse);
+}
+
+.toolbar-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.toolbar-button svg {
+  width: 16px;
+  height: 16px;
+}
+
+.toolbar-separator {
+  width: 1px;
+  height: 20px;
+  background-color: var(--color-border-light);
+  margin: 0 var(--space-1);
+}
+
+/* Toolbar positioning within editor */
+.editor-with-toolbar {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.editor-toolbar-container {
+  padding: var(--space-4) var(--space-4) 0 var(--space-4);
+}
+
+.editor-content-with-toolbar {
+  flex: 1;
+  overflow: auto;
+}

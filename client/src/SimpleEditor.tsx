@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { CursorInfo } from './cursorManager';
+import { Toolbar } from './components/Toolbar';
 
 interface EditorProps {
   initialDoc: string;
@@ -125,26 +126,39 @@ export function Editor({ initialDoc, onChange, onMouseMove, onApplyOperation, re
     from; to; // Suppress unused warnings
   };
 
+  const handleFormat = (format: string) => {
+    // Placeholder for text formatting
+    // Will be implemented in next phase
+    console.log('Format:', format);
+  };
+
   return (
     <div 
       ref={editorContainerRef}
       className="editor-container" 
       onMouseMove={handleMouseMove}
     >
-      <textarea
-        ref={textareaRef}
-        className="editor"
-        value={value}
-        onChange={handleChange}
-        onSelect={handleSelect}
-        onClick={handleSelect}
-        onKeyUp={handleSelect}
-        spellCheck={false}
-        autoComplete="off"
-        autoCorrect="off"
-        autoCapitalize="off"
-        placeholder="Start typing..."
-      />
+      <div className="editor-with-toolbar">
+        <div className="editor-toolbar-container">
+          <Toolbar onFormat={handleFormat} />
+        </div>
+        <div className="editor-content-with-toolbar">
+          <textarea
+            ref={textareaRef}
+            className="editor"
+            value={value}
+            onChange={handleChange}
+            onSelect={handleSelect}
+            onClick={handleSelect}
+            onKeyUp={handleSelect}
+            spellCheck={false}
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
+            placeholder="Start typing..."
+          />
+        </div>
+      </div>
       <div className="cursors-overlay">
         {remoteCursors.map(cursor => {
           return (
